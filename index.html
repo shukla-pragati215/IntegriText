@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntegriText - AI-Powered Writing Suite</title>
+    <meta name="description" content="Professional plagiarism checker, AI detector, grammar checker, AI humanizer, translator and AI chat assistant.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Auth Pages -->
+    <div id="authPage" class="auth-page">
+        <div class="auth-bg-orbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+        <div class="auth-container">
+            <div class="auth-brand">
+                <div class="auth-logo"><i class="ri-shield-check-fill"></i></div>
+                <h1>IntegriText</h1>
+                <p>AI-Powered Writing Suite</p>
+            </div>
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form" autocomplete="off">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Sign in to your account</p>
+                <div class="input-group">
+                    <i class="ri-mail-line"></i>
+                    <input type="email" id="loginEmail" placeholder="Email address" required>
+                </div>
+                <div class="input-group">
+                    <i class="ri-lock-line"></i>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn-primary">Sign In <i class="ri-arrow-right-line"></i></button>
+                <p class="auth-switch">Don't have an account? <a href="#" id="showSignup">Create one</a></p>
+            </form>
+            <!-- Signup Form -->
+            <form id="signupForm" class="auth-form hidden" autocomplete="off">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Join IntegriText today</p>
+                <div class="input-group">
+                    <i class="ri-user-line"></i>
+                    <input type="text" id="signupName" placeholder="Full name" required>
+                </div>
+                <div class="input-group">
+                    <i class="ri-mail-line"></i>
+                    <input type="email" id="signupEmail" placeholder="Email address" required>
+                </div>
+                <div class="input-group">
+                    <i class="ri-lock-line"></i>
+                    <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required minlength="6">
+                </div>
+                <button type="submit" class="btn-primary">Create Account <i class="ri-arrow-right-line"></i></button>
+                <p class="auth-switch">Already have an account? <a href="#" id="showLogin">Sign in</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="main-app hidden">
+        <!-- Top Navbar -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <button id="navBackBtn" class="icon-btn hidden" title="Go Back" style="margin-right: 15px; width: 36px; height: 36px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); display: none; align-items: center; justify-content: center;">
+                    <i class="ri-arrow-left-line" style="font-size: 1.2rem; color: var(--text);"></i>
+                </button>
+                <i class="ri-shield-check-fill"></i>
+                <span>IntegriText</span>
+            </div>
+            <div class="nav-actions">
+                <button id="darkModeToggleNav" class="icon-btn" title="Toggle theme">
+                    <i class="ri-moon-line"></i>
+                </button>
+                <div class="profile-wrapper">
+                    <button id="profileBtn" class="profile-btn">
+                        <i class="ri-user-3-fill"></i>
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown hidden">
+                        <div class="dropdown-header">
+                            <div class="dropdown-avatar"><i class="ri-user-3-fill"></i></div>
+                            <div>
+                                <p id="dropdownName" class="dropdown-name">User</p>
+                                <p id="dropdownEmail" class="dropdown-email">user@email.com</p>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" data-page="account"><i class="ri-user-settings-line"></i> Account Details</a>
+                        <a href="#" class="dropdown-item" id="darkModeToggle"><i class="ri-moon-line"></i> <span id="darkModeLabel">Dark Mode</span></a>
+                        <a href="#" class="dropdown-item" data-page="help"><i class="ri-question-line"></i> Help Center</a>
+                        <a href="#" class="dropdown-item" data-page="contact"><i class="ri-mail-send-line"></i> Contact Us</a>
+                        <a href="#" class="dropdown-item" data-page="legal"><i class="ri-file-shield-2-line"></i> Legal</a>
+                        <a href="#" class="dropdown-item" data-page="history"><i class="ri-history-line"></i> Scan History</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item dropdown-logout" id="logoutBtn"><i class="ri-logout-box-r-line"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+                <button class="sidebar-item active" data-tool="dashboard"><i class="ri-dashboard-3-line"></i><span>Dashboard</span></button>
+                <button class="sidebar-item" data-tool="plagiarism"><i class="ri-file-search-line"></i><span>Plagiarism</span></button>
+                <button class="sidebar-item" data-tool="ai-detect"><i class="ri-robot-2-line"></i><span>AI Detector</span></button>
+                <button class="sidebar-item" data-tool="grammar"><i class="ri-text"></i><span>Grammar</span></button>
+                <button class="sidebar-item" data-tool="ai-chat"><i class="ri-chat-smile-ai-line"></i><span>AI Chat</span></button>
+                <button class="sidebar-item" data-tool="humanizer"><i class="ri-user-heart-line"></i><span>Humanizer</span></button>
+                <button class="sidebar-item" data-tool="translate"><i class="ri-translate-2"></i><span>Translate</span></button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <!-- Dashboard -->
+            <section id="page-dashboard" class="tool-page active">
+                <div class="dashboard-hero">
+                    <h1>Welcome back, <span id="dashboardUserName">User</span>!</h1>
+                    <p>Choose a tool to get started with your writing journey.</p>
+                </div>
+                <div class="tools-grid">
+                    <div class="tool-card" data-goto="plagiarism">
+                        <div class="tool-card-icon tc-blue"><i class="ri-file-search-line"></i></div>
+                        <h3>Plagiarism Checker</h3>
+                        <p>Scan your text for originality and detect copied content instantly.</p>
+                    </div>
+                    <div class="tool-card" data-goto="ai-detect">
+                        <div class="tool-card-icon tc-purple"><i class="ri-robot-2-line"></i></div>
+                        <h3>AI Detector</h3>
+                        <p>Identify AI-generated content with advanced detection algorithms.</p>
+                    </div>
+                    <div class="tool-card" data-goto="grammar">
+                        <div class="tool-card-icon tc-green"><i class="ri-text"></i></div>
+                        <h3>Grammar Checker</h3>
+                        <p>Fix grammar, spelling, and punctuation errors effortlessly.</p>
+                    </div>
+                    <div class="tool-card" data-goto="ai-chat">
+                        <div class="tool-card-icon tc-orange"><i class="ri-chat-smile-ai-line"></i></div>
+                        <h3>AI Chat</h3>
+                        <p>Get instant help with writing, research, and content ideas.</p>
+                    </div>
+                    <div class="tool-card" data-goto="humanizer">
+                        <div class="tool-card-icon tc-pink"><i class="ri-user-heart-line"></i></div>
+                        <h3>AI Humanizer</h3>
+                        <p>Transform AI-generated text into natural, human-like writing.</p>
+                    </div>
+                    <div class="tool-card" data-goto="translate">
+                        <div class="tool-card-icon tc-teal"><i class="ri-translate-2"></i></div>
+                        <h3>Translate</h3>
+                        <p>Translate your content into 50+ languages accurately.</p>
+                </div>
+                <div class="dashboard-section" style="margin-top: 30px; margin-bottom: 30px;">
+                    <h2><i class="ri-bar-chart-2-line"></i> Writing Analytics Trends</h2>
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-top: 15px;">
+                        <canvas id="dashboardChart" style="max-height: 400px; width: 100%;"></canvas>
+                    </div>
+                </div>
+                </div>
+            </section>
+
+            <!-- Scan History Page -->
+            <section id="page-history" class="tool-page">
+                <div class="tool-header" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px;">
+                    <div class="tool-header-icon tc-purple" style="box-shadow: 0 10px 25px rgba(139,92,246,0.2);"><i class="ri-history-line"></i></div>
+                    <div>
+                        <h2 style="font-size: 2rem; margin-bottom: 5px;">Your Activity Log</h2>
+                        <p style="font-size: 1.1rem; color: var(--text2);">A complete timeline of your writing analysis, checks, and transformations.</p>
+                    </div>
+                </div>
+                <div class="tool-body">
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 25px;">
+                        <div id="scanHistoryContainer" class="history-list full-page-history">
+                            <p class="empty-history">No recent scans found. Try checking some text!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Plagiarism Checker -->
+            <section id="page-plagiarism" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-blue"><i class="ri-file-search-line"></i></div>
+                    <div><h2>Plagiarism Checker</h2><p>Paste or type your text to check for originality</p></div>
+                </div>
+                <div class="tool-body">
+                    <textarea id="plagiarismInput" class="tool-textarea" placeholder="Paste your text here to check for plagiarism..." rows="10"></textarea>
+                    <div class="tool-actions">
+                        <span class="word-count" id="plagiarismWC">0 words</span>
+                        <label for="plagiarismFile" class="btn-secondary"><i class="ri-upload-2-line"></i> Upload File</label>
+                        <input type="file" id="plagiarismFile" accept=".txt,.pdf,.docx" style="display:none;">
+                        <button class="btn-primary" id="checkPlagiarism"><i class="ri-search-eye-line"></i> Check Plagiarism</button>
+                    </div>
+                    <div id="plagiarismResult" class="result-box hidden"></div>
+                </div>
+            </section>
+
+            <!-- AI Detector -->
+            <section id="page-ai-detect" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-purple"><i class="ri-robot-2-line"></i></div>
+                    <div><h2>AI Content Detector</h2><p>Analyze text to determine if it's human or AI-written</p></div>
+                </div>
+                <div class="tool-body">
+                    <textarea id="aiDetectInput" class="tool-textarea" placeholder="Paste text here to detect if it was written by AI..." rows="10"></textarea>
+                    <div class="tool-actions">
+                        <span class="word-count" id="aiDetectWC">0 words</span>
+                        <label for="aiDetectFile" class="btn-secondary"><i class="ri-upload-2-line"></i> Upload File</label>
+                        <input type="file" id="aiDetectFile" accept=".txt,.pdf,.docx" style="display:none;">
+                        <button class="btn-primary btn-purple" id="detectAI"><i class="ri-robot-2-line"></i> Detect AI</button>
+                    </div>
+                    <div id="aiDetectResult" class="result-box hidden"></div>
+                </div>
+            </section>
+
+            <!-- Grammar Checker -->
+            <section id="page-grammar" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-green"><i class="ri-text"></i></div>
+                    <div><h2>Grammar Checker</h2><p>Fix grammar, punctuation, and spelling errors</p></div>
+                </div>
+                <div class="tool-body">
+                    <textarea id="grammarInput" class="tool-textarea" placeholder="Type or paste your text to check grammar..." rows="10"></textarea>
+                    <div class="tool-actions">
+                        <span class="word-count" id="grammarWC">0 words</span>
+                        <label for="grammarFile" class="btn-secondary"><i class="ri-upload-2-line"></i> Upload File</label>
+                        <input type="file" id="grammarFile" accept=".txt,.pdf,.docx" style="display:none;">
+                        <button class="btn-primary btn-green" id="checkGrammar"><i class="ri-check-double-line"></i> Check Grammar</button>
+                    </div>
+                    <div id="grammarResult" class="result-box hidden"></div>
+                </div>
+            </section>
+
+            <!-- AI Chat -->
+            <section id="page-ai-chat" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-orange"><i class="ri-chat-smile-ai-line"></i></div>
+                    <div><h2>AI Chat Assistant</h2><p>Ask anything — writing help, research, content ideas</p></div>
+                </div>
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-bubble bot">
+                            <div class="chat-avatar"><i class="ri-robot-2-fill"></i></div>
+                            <div class="chat-text">Hello! I'm your AI writing assistant. How can I help you today?</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                        <button id="chatSend" class="btn-send"><i class="ri-send-plane-2-fill"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Humanizer -->
+            <section id="page-humanizer" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-pink"><i class="ri-user-heart-line"></i></div>
+                    <div><h2>AI Humanizer</h2><p>Make AI-generated text sound natural and human</p></div>
+                </div>
+                <div class="tool-body dual-panel">
+                    <div class="panel">
+                        <label>AI Text (Input)</label>
+                        <textarea id="humanizerInput" class="tool-textarea" placeholder="Paste AI-generated text here..." rows="8"></textarea>
+                    </div>
+                    <div class="panel">
+                        <label>Humanized Text (Output)</label>
+                        <div id="humanizerOutput" class="output-area">Your humanized text will appear here...</div>
+                    </div>
+                </div>
+                <div class="tool-actions center">
+                    <button class="btn-primary btn-pink" id="humanizeText"><i class="ri-magic-line"></i> Humanize Text</button>
+                    <button class="btn-secondary" id="copyHumanized"><i class="ri-file-copy-line"></i> Copy</button>
+                </div>
+            </section>
+
+            <!-- Translate -->
+            <section id="page-translate" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-teal"><i class="ri-translate-2"></i></div>
+                    <div><h2>Translate</h2><p>Translate your text into 50+ languages</p></div>
+                </div>
+                <div class="tool-body dual-panel">
+                    <div class="panel">
+                        <div class="lang-select">
+                            <select id="sourceLang"><option value="auto">Auto Detect</option><option value="en">English</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="hi">Hindi</option><option value="zh">Chinese</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="ar">Arabic</option><option value="pt">Portuguese</option><option value="ru">Russian</option><option value="it">Italian</option></select>
+                        </div>
+                        <textarea id="translateInput" class="tool-textarea" placeholder="Enter text to translate..." rows="8"></textarea>
+                    </div>
+                    <div class="panel">
+                        <div class="lang-select">
+                            <select id="targetLang"><option value="es">Spanish</option><option value="en">English</option><option value="fr">French</option><option value="de">German</option><option value="hi">Hindi</option><option value="zh">Chinese</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="ar">Arabic</option><option value="pt">Portuguese</option><option value="ru">Russian</option><option value="it">Italian</option><option value="ur">Urdu</option><option value="bn">Bengali</option><option value="tr">Turkish</option></select>
+                        </div>
+                        <div id="translateOutput" class="output-area">Translation will appear here...</div>
+                    </div>
+                </div>
+                <div class="tool-actions center">
+                    <button class="btn-primary btn-teal" id="translateText"><i class="ri-translate-2"></i> Translate</button>
+                    <button class="btn-secondary" id="copyTranslation"><i class="ri-file-copy-line"></i> Copy</button>
+                </div>
+            </section>
+
+            <!-- Account Page -->
+            <section id="page-account" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-blue"><i class="ri-user-settings-line"></i></div>
+                    <div><h2>Account Details</h2><p>Manage your profile and preferences</p></div>
+                </div>
+                <div class="settings-card">
+                    <div class="avatar-large"><i class="ri-user-3-fill"></i></div>
+                    <div class="settings-form">
+                        <div class="input-group"><i class="ri-user-line"></i><input type="text" id="accName" placeholder="Full Name"></div>
+                        <div class="input-group"><i class="ri-mail-line"></i><input type="email" id="accEmail" placeholder="Email" disabled></div>
+                        <div class="input-group"><i class="ri-lock-line"></i><input type="password" id="accPassword" placeholder="New Password"></div>
+                        <button class="btn-primary" id="saveAccount"><i class="ri-save-line"></i> Save Changes</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Help Center -->
+            <section id="page-help" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-orange"><i class="ri-question-line"></i></div>
+                    <div><h2>Help Center</h2><p>Find answers to common questions</p></div>
+                </div>
+                <div class="faq-list">
+                    <details class="faq-item"><summary>How does the Plagiarism Checker work?</summary><p>Our plagiarism checker compares your text against billions of web pages and academic databases to identify matching content. Results show the percentage of original vs. matched content.</p></details>
+                    <details class="faq-item"><summary>What is the AI Detector?</summary><p>The AI Detector analyzes writing patterns, sentence structure, and linguistic markers to determine the probability that text was generated by an AI model like ChatGPT or similar tools.</p></details>
+                    <details class="faq-item"><summary>How does the AI Humanizer work?</summary><p>The AI Humanizer rewrites AI-generated text to sound more natural and human-like by varying sentence structure, adding colloquialisms, and adjusting tone while preserving the original meaning.</p></details>
+                    <details class="faq-item"><summary>Is my data secure?</summary><p>Yes. All text submissions are encrypted and processed securely. We do not store your content after analysis is complete. Your privacy is our top priority.</p></details>
+                    <details class="faq-item"><summary>How many languages are supported for translation?</summary><p>We support over 50 languages for translation including English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, and many more.</p></details>
+                </div>
+            </section>
+
+            <!-- Contact Us -->
+            <section id="page-contact" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-green"><i class="ri-mail-send-line"></i></div>
+                    <div><h2>Contact Us</h2><p>We'd love to hear from you</p></div>
+                </div>
+                <div class="settings-card">
+                    <div class="settings-form">
+                        <div class="input-group"><i class="ri-user-line"></i><input type="text" placeholder="Your Name"></div>
+                        <div class="input-group"><i class="ri-mail-line"></i><input type="email" placeholder="Your Email"></div>
+                        <div class="input-group textarea-group"><i class="ri-message-2-line"></i><textarea placeholder="Your Message" rows="5"></textarea></div>
+                        <button class="btn-primary btn-green" id="sendContact"><i class="ri-send-plane-line"></i> Send Message</button>
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-item"><i class="ri-mail-fill"></i><span>support@integritext.com</span></div>
+                        <div class="contact-item"><i class="ri-phone-fill"></i><span>+1 (555) 123-4567</span></div>
+                        <div class="contact-item"><i class="ri-map-pin-fill"></i><span>San Francisco, CA 94102</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Legal -->
+            <section id="page-legal" class="tool-page">
+                <div class="tool-header">
+                    <div class="tool-header-icon tc-purple"><i class="ri-file-shield-2-line"></i></div>
+                    <div><h2>Legal</h2><p>Terms, Privacy Policy & Compliance</p></div>
+                </div>
+                <div class="legal-content">
+                    <div class="legal-section"><h3>Terms of Service</h3><p>By using IntegriText, you agree to our terms of service. Our platform provides AI-powered text analysis tools for educational and professional purposes. Users must not misuse the service for academic dishonesty or any illegal activity.</p></div>
+                    <div class="legal-section"><h3>Privacy Policy</h3><p>We collect minimal personal information required to provide our services. Your text submissions are processed in real-time and are not stored permanently. We use industry-standard encryption to protect your data.</p></div>
+                    <div class="legal-section"><h3>Data Protection</h3><p>IntegriText complies with GDPR, CCPA, and other applicable data protection regulations. You have the right to access, modify, or delete your personal data at any time.</p></div>
+                    <div class="legal-section"><h3>Cookie Policy</h3><p>We use essential cookies for authentication and preferences. No third-party tracking cookies are used without your explicit consent.</p></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
