@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "npm install",
+  "public": "public",
   "outputDirectory": ".",
   "functions": {
     "api/index.js": {
@@ -8,15 +9,35 @@
       "maxDuration": 30
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/(?!api)",
+      "dest": "/public/index.html"
     }
   ],
   "env": {
     "MONGODB_URI": "@mongodb_uri",
     "JWT_SECRET": "@jwt_secret",
     "NODE_ENV": "production"
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
+  ]
 }

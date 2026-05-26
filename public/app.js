@@ -1,8 +1,7 @@
 // ============ STATE ============
 const state = { user: null, darkMode: true };
-const API_URL = window.location.origin === 'null' || window.location.protocol === 'file:'
-    ? 'http://localhost:5000'
-    : window.location.origin;
+// Use relative paths for API - works on both local and Vercel
+const API_URL = window.location.protocol === 'file:' ? 'http://localhost:5000' : '';
 
 
 // ============ HELPERS ============
