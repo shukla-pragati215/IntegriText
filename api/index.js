@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve frontend files statically (only for local development)
 if (process.env.NODE_ENV !== 'production' && require.main === module) {
-    app.use(express.static(__dirname));
+    app.use(express.static(path.join(__dirname, '..')));
 }
 
 // ==========================================
@@ -63,11 +63,11 @@ app.use('/api', async (req, res, next) => {
 });
 
 // Import Models
-const User = require('./models/User');
-const Scan = require('./models/Scan');
-const ChatMessage = require('./models/ChatMessage');
-const Contact = require('./models/Contact');
-const auth = require('./middleware/auth');
+const User = require('../models/User');
+const Scan = require('../models/Scan');
+const ChatMessage = require('../models/ChatMessage');
+const Contact = require('../models/Contact');
+const auth = require('../middleware/auth');
 
 // ==========================================
 // AUTH ROUTES
@@ -706,7 +706,7 @@ app.post('/api/contact', async (req, res) => {
 // Default route to serve index.html (local dev only)
 if (require.main === module) {
     app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'index.html'));
+        res.sendFile(path.join(__dirname, '..', 'index.html'));
     });
 }
 
