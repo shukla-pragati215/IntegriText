@@ -712,8 +712,13 @@ if (require.main === module) {
 
 // Start Server
 if (require.main === module) {
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
         console.log(`Server running on http://localhost:${PORT}`);
+        try {
+            await connectToDatabase();
+        } catch (err) {
+            console.error('Failed to connect to database on startup');
+        }
     });
 }
 
