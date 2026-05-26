@@ -19,20 +19,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5000', /\.vercel\.app$/],
-    credentials: true
-}));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-});
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend files statically
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
+// Serve frontend files statically (only for local development)
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+    app.use(express.static(path.join(__dirname, '..', 'public')));
+}
 
 // ==========================================
 // MongoDB Connection (cached for serverless)
@@ -76,20 +70,6 @@ const Contact = require('./models/Contact');
 const auth = require('./middleware/auth');
 
 // ==========================================
-// HELPER FUNCTIONS
-// ==========================================
-
-// Helper function to sign JWT token with promise support
-function signToken(payload) {
-    return new Promise((resolve, reject) => {
-        jwt.sign(payload, process.env.JWT_SECRET || 'integritext_secret_key_123', { expiresIn: '7d' }, (err, token) => {
-            if (err) reject(err);
-            else resolve(token);
-        });
-    });
-}
-
-// ==========================================
 // AUTH ROUTES
 // ==========================================
 
@@ -115,10 +95,12 @@ app.post('/api/auth/register', async (req, res) => {
         await user.save();
 
         const payload = { user: { id: user.id } };
-        const token = await signToken(payload);
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+        jwt.sign(payload, process.env.JWT_SECRET || 'integritext_secret_key_123', { expiresIn: '7d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+        });
     } catch (err) {
-        console.error('Registration error:', err);
+        console.error(err);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -142,10 +124,12 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         const payload = { user: { id: user.id } };
-        const token = await signToken(payload);
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+        jwt.sign(payload, process.env.JWT_SECRET || 'integritext_secret_key_123', { expiresIn: '7d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+        });
     } catch (err) {
-        console.error('Login error:', err);
+        console.error(err);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -719,30 +703,12 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
-// Default route to serve index.html (for SPA routing)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
-
-// Catch-all error handler
-app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ 
-        message: 'Internal server error',
-        error: process.env.NODE_ENV === 'production' ? undefined : err.message
-    });
-});
-
-// 404 handler
-app.use((req, res) => {
-    if (req.path.startsWith('/api')) {
-        res.status(404).json({ message: 'API endpoint not found' });
-    } else {
+// Default route to serve index.html (local dev only)
+if (require.main === module) {
+    app.get('/', (req, res) => {
         res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-    }
-});
-
-
+    });
+}
 
 // Start Server
 if (require.main === module) {
