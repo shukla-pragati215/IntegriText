@@ -63,11 +63,11 @@ app.use('/api', async (req, res, next) => {
 });
 
 // Import Models
-const User = require('../models/User');
-const Scan = require('../models/Scan');
-const ChatMessage = require('../models/ChatMessage');
-const Contact = require('../models/Contact');
-const auth = require('../middleware/auth');
+const User = require('./models/User');
+const Scan = require('./models/Scan');
+const ChatMessage = require('./models/ChatMessage');
+const Contact = require('./models/Contact');
+const auth = require('./middleware/auth');
 
 // ==========================================
 // AUTH ROUTES
