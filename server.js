@@ -23,15 +23,43 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend files statically
-app.use(express.static(__dirname));
+// Serve frontend files statically (only for local development)
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+    app.use(express.static(__dirname));
+}
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/integritext').then(() => {
-    console.log('MongoDB Connected successfully');
-}).catch(err => {
-    console.error('MongoDB Connection Error:', err.message);
-    console.log('Ensure MongoDB service is running locally on port 27017');
+// ==========================================
+// MongoDB Connection (cached for serverless)
+// ==========================================
+let cachedDb = null;
+
+async function connectToDatabase() {
+    if (cachedDb && mongoose.connection.readyState === 1) {
+        return cachedDb;
+    }
+
+    const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/integritext';
+
+    try {
+        await mongoose.connect(uri);
+        cachedDb = mongoose.connection;
+        console.log('MongoDB Connected successfully');
+        return cachedDb;
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err.message);
+        throw err;
+    }
+}
+
+// Ensure DB is connected before handling any API request
+app.use('/api', async (req, res, next) => {
+    try {
+        await connectToDatabase();
+        next();
+    } catch (err) {
+        console.error('Database connection failed:', err.message);
+        return res.status(500).json({ message: 'Database connection failed. Please check server configuration.' });
+    }
 });
 
 // Import Models
@@ -675,12 +703,19 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
-// Default route to serve index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Default route to serve index.html (local dev only)
+if (require.main === module) {
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+}
 
 // Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
+}
+
+// Export for Vercel Serverless
+module.exports = app;

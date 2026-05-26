@@ -1,7 +1,7 @@
 // ============ STATE ============
 const state = { user: null, darkMode: true };
-const API_URL = window.location.origin === 'null' || window.location.protocol === 'file:' 
-    ? 'http://localhost:5000' 
+const API_URL = window.location.origin === 'null' || window.location.protocol === 'file:'
+    ? 'http://localhost:5000'
     : window.location.origin;
 
 
@@ -209,13 +209,13 @@ function getAnnotatedPlagiarismText(text, sources) {
     const sorted = [...sources]
         .filter(s => s.matchText && s.matchText.trim() && s.matchText !== 'Common phrase match')
         .sort((a, b) => b.matchText.length - a.matchText.length);
-    
+
     sorted.forEach((src) => {
         const escaped = src.matchText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
         const regex = new RegExp(`(${escaped})`, 'gi');
         annotated = annotated.replace(regex, `<span class="plag-annotated-match" style="background: rgba(239, 68, 68, 0.15); border-bottom: 2px dashed #ef4444; color: #ff6b6b; padding: 2px 4px; border-radius: 4px; font-weight: 500; cursor: help;" title="Source: ${src.source}">$1</span>`);
     });
-    
+
     return `<div style="white-space: pre-wrap; font-size: 0.93rem; line-height: 1.75; font-family: 'Inter', sans-serif;">${annotated}</div>`;
 }
 
@@ -227,13 +227,13 @@ function getAnnotatedAiText(text) {
         'multifaceted', 'think of it as', 'let\'s explore',
         'revolutionary', 'groundbreaking', 'subsequently', 'utilize'
     ];
-    
+
     let annotated = text;
     aiKeywords.forEach(kw => {
         const regex = new RegExp(`\\b(${kw})\\b`, 'gi');
         annotated = annotated.replace(regex, `<span class="ai-annotated-match" style="background: rgba(139, 92, 246, 0.15); border-bottom: 2px dashed #8b5cf6; color: #a78bfa; padding: 2px 4px; border-radius: 4px; font-weight: 500; cursor: help;" title="Uniform transition / AI vocabulary hit">$1</span>`);
     });
-    
+
     return `<div style="white-space: pre-wrap; font-size: 0.93rem; line-height: 1.75; font-family: 'Inter', sans-serif;">${annotated}</div>`;
 }
 
@@ -245,19 +245,19 @@ function getAnnotatedGrammarText(text, issues) {
     const sorted = [...issues]
         .filter(issue => issue.issue && issue.issue.trim())
         .sort((a, b) => b.issue.length - a.issue.length);
-    
+
     sorted.forEach((issue) => {
         const escaped = issue.issue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
         const regex = new RegExp(`(${escaped})`, 'gi');
         annotated = annotated.replace(regex, `<span class="grammar-annotated-issue" style="background: rgba(245, 158, 11, 0.15); border-bottom: 2px dashed #f59e0b; color: #f59e0b; padding: 2px 4px; border-radius: 4px; font-weight: 500; cursor: help;" title="Category: ${issue.type} | Suggestion: ${issue.fix}">$1</span>`);
     });
-    
+
     return `<div style="white-space: pre-wrap; font-size: 0.93rem; line-height: 1.75; font-family: 'Inter', sans-serif;">${annotated}</div>`;
 }
 
 function handleFileUpload(fileInput, textarea, wcSpan) {
     if (!fileInput) return;
-    fileInput.addEventListener('change', async function(e) {
+    fileInput.addEventListener('change', async function (e) {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -476,7 +476,7 @@ function switchPage(name, isBack = false, skipHistoryState = false) {
             backBtn.style.display = 'none';
         }
     }
-    
+
     // Auto-clear history if we go to dashboard manually (acts as home)
     if (name === 'dashboard' && !isBack) {
         pageHistoryStack = [];
@@ -487,7 +487,7 @@ function switchPage(name, isBack = false, skipHistoryState = false) {
 window.addEventListener('popstate', (e) => {
     if (e.state && e.state.page) {
         if (pageHistoryStack.length > 0) {
-            pageHistoryStack.pop(); 
+            pageHistoryStack.pop();
         }
         switchPage(e.state.page, true, true);
     } else {
@@ -596,7 +596,7 @@ function createProgressRing(pct, color) {
 $('#checkPlagiarism').addEventListener('click', async function () {
     const text = $('#plagiarismInput').value.trim();
     if (!text) { toast('Please enter some text!'); return; }
-    
+
     startLoading(this);
     try {
         const res = await fetch(`${API_URL}/api/scans/plagiarism`, {
@@ -610,10 +610,10 @@ $('#checkPlagiarism').addEventListener('click', async function () {
         const orig = data.score;
         const plag = data.details.plagiarizedPct;
         const color = orig > 85 ? '#10b981' : orig > 60 ? '#f59e0b' : '#ef4444';
-        
+
         let sourcesHtml = '';
         if (data.details.sources && data.details.sources.length > 0) {
-            sourcesHtml = `<h5>Matched Sources:</h5>` + data.details.sources.map(src => 
+            sourcesHtml = `<h5>Matched Sources:</h5>` + data.details.sources.map(src =>
                 `<div class="highlight-issue" style="border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05)">
                     <strong>${src.source}:</strong> "${src.matchText}"
                 </div>`
@@ -647,11 +647,11 @@ $('#checkPlagiarism').addEventListener('click', async function () {
             </div>
         `;
         show(result);
-        
+
         $('#downloadPlagReport').addEventListener('click', () => {
             downloadPDFReport('plagiarism', 'Plagiarism Scan Report', data, text);
         });
-        
+
         loadHistory(); // Refresh history list
     } catch (err) {
         toast(err.message);
@@ -664,7 +664,7 @@ $('#checkPlagiarism').addEventListener('click', async function () {
 $('#detectAI').addEventListener('click', async function () {
     const text = $('#aiDetectInput').value.trim();
     if (!text) { toast('Please enter some text!'); return; }
-    
+
     startLoading(this);
     try {
         const res = await fetch(`${API_URL}/api/scans/ai-detect`, {
@@ -704,11 +704,11 @@ $('#detectAI').addEventListener('click', async function () {
             </div>
         `;
         show(result);
-        
+
         $('#downloadAiReport').addEventListener('click', () => {
             downloadPDFReport('ai-detect', 'AI Content Detection Report', data, text);
         });
-        
+
         loadHistory();
     } catch (err) {
         toast(err.message);
@@ -721,7 +721,7 @@ $('#detectAI').addEventListener('click', async function () {
 $('#checkGrammar').addEventListener('click', async function () {
     const text = $('#grammarInput').value.trim();
     if (!text) { toast('Please enter some text!'); return; }
-    
+
     startLoading(this);
     try {
         const res = await fetch(`${API_URL}/api/scans/grammar`, {
@@ -736,10 +736,10 @@ $('#checkGrammar').addEventListener('click', async function () {
         const color = score > 85 ? '#10b981' : score > 70 ? '#f59e0b' : '#ef4444';
         const result = $('#grammarResult');
         const annotatedTextHtml = getAnnotatedGrammarText(text, data.details.issues || []);
-        
+
         let issuesListHtml = '';
         if (data.details.issues && data.details.issues.length > 0) {
-            issuesListHtml = data.details.issues.map(issue => 
+            issuesListHtml = data.details.issues.map(issue =>
                 `<div class="highlight-issue" style="margin-bottom: 8px; border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.05); padding: 8px 12px; font-size: 0.85rem;">
                     <strong>${issue.type}:</strong> "${issue.issue}" <i class="ri-arrow-right-line"></i> <span style="color: #10b981; font-weight: 600;">"${issue.fix}"</span>
                 </div>`
@@ -772,11 +772,11 @@ $('#checkGrammar').addEventListener('click', async function () {
             </div>
         `;
         show(result);
-        
+
         $('#downloadGrammarReport').addEventListener('click', () => {
             downloadPDFReport('grammar', 'Grammar Audit Report', data, text);
         });
-        
+
         loadHistory();
     } catch (err) {
         toast(err.message);
@@ -801,16 +801,16 @@ async function loadChatHistory() {
         });
         if (!res.ok) return;
         const messages = await res.json();
-        
+
         // Clear chat area except welcoming message if history is empty
         const messagesDiv = $('#chatMessages');
         messagesDiv.innerHTML = '';
-        
+
         if (messages.length === 0) {
             addChatMessage("Hello! I'm your AI writing assistant. How can I help you today?", false);
             return;
         }
-        
+
         messages.forEach(msg => {
             addChatMessage(msg.message, msg.sender === 'user');
         });
@@ -823,10 +823,10 @@ async function handleChat() {
     const input = $('#chatInput');
     const text = input.value.trim();
     if (!text) return;
-    
+
     addChatMessage(text, true);
     input.value = '';
-    
+
     // Bot typing indicator
     const typing = document.createElement('div');
     typing.className = 'chat-bubble bot';
@@ -843,7 +843,7 @@ async function handleChat() {
         });
         const data = await res.json();
         typing.remove();
-        
+
         if (!res.ok) throw new Error(data.message || 'Chat error');
         addChatMessage(data.botMsg.message, false);
     } catch (err) {
@@ -859,7 +859,7 @@ $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') handle
 $('#humanizeText').addEventListener('click', async function () {
     const text = $('#humanizerInput').value.trim();
     if (!text) { toast('Please enter some text!'); return; }
-    
+
     startLoading(this);
     try {
         const res = await fetch(`${API_URL}/api/scans/humanizer`, {
@@ -895,7 +895,7 @@ $('#translateText').addEventListener('click', async function () {
     if (!text) { toast('Please enter some text!'); return; }
     const sourceLang = $('#sourceLang').value;
     const targetLang = $('#targetLang').value;
-    
+
     startLoading(this);
     try {
         const res = await fetch(`${API_URL}/api/scans/translate`, {
@@ -1068,7 +1068,7 @@ function renderDashboardChart(historyList) {
 
     // Group scans by date for labels
     const labels = scoredItems.map(item => new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     // Build datasets representing user's writing quality progression
     const datasets = [
         {
@@ -1149,7 +1149,7 @@ function renderDashboardChart(historyList) {
 }
 
 // Global function for onclick deletes
-window.deleteHistoryItem = async function(id) {
+window.deleteHistoryItem = async function (id) {
     if (!confirm('Are you sure you want to delete this scan record?')) return;
     try {
         const res = await fetch(`${API_URL}/api/scans/history/${id}`, {
