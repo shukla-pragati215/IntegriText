@@ -5,8 +5,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const dotenv = require('dotenv');
+const fetch = require('node-fetch');
+const mammoth = require('mammoth');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
 
-// Load environment variables
 dotenv.config();
 
 const multer = require('multer');
