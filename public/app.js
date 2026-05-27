@@ -3,7 +3,7 @@ const state = { user: null, darkMode: true };
 const API_URL =
     window.location.hostname === 'localhost'
         ? 'http://localhost:5000'
-        : '/';
+        : window.location.origin;
 
 
 // ============ HELPERS ============
