@@ -1,8 +1,9 @@
 // ============ STATE ============
 const state = { user: null, darkMode: true };
-const API_URL = window.location.origin === 'null' || window.location.protocol === 'file:'
-    ? 'http://localhost:5000'
-    : window.location.origin;
+const API_URL =
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : '/';
 
 
 // ============ HELPERS ============
