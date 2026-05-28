@@ -297,21 +297,12 @@ app.get('/', (req, res) => {
 });
 
 // ============================
-// Start Server
 // ============================
-if (require.main === module) {
-
-    app.listen(PORT, async () => {
-
-        await connectDB();
-
-        console.log(
-            `Server running on port ${PORT}`
-        );
-    });
-}
+// Connect DB
+// ============================
+connectDB();
 
 // ============================
-// Export
+// Export App
 // ============================
 module.exports = app;
