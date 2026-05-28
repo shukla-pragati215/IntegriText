@@ -297,112 +297,295 @@ function getHeaders() {
 }
 
 // ============ AUTH ============
+
+// SIGNUP
 $('#signupForm').addEventListener('submit', async e => {
+
     e.preventDefault();
+
     const name = $('#signupName').value.trim();
-    const email = $('#signupEmail').value.trim().toLowerCase();
+
+    const email = $('#signupEmail')
+        .value
+        .trim()
+        .toLowerCase();
+
     const password = $('#signupPassword').value;
 
     try {
-        const res = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+        const res = await fetch(
+            `${API_URL}/api/auth/register`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password
+                })
+            }
+        );
+
+        const text = await res.text();
+
+        let data;
+
+        try {
+
+            data = JSON.parse(text);
+
+        } catch {
+
+            throw new Error(
+                text || 'Invalid server response'
+            );
+        }
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message || 'Registration failed'
+            );
+        }
 
         toast('Account created! Please sign in.');
+
         $('#signupForm').reset();
+
         show($('#loginForm'));
+
         hide($('#signupForm'));
+
     } catch (err) {
+
+        console.error(err);
+
         toast(err.message);
     }
 });
 
+// LOGIN
 $('#loginForm').addEventListener('submit', async e => {
+
     e.preventDefault();
-    const email = $('#loginEmail').value.trim().toLowerCase();
+
+    const email = $('#loginEmail')
+        .value
+        .trim()
+        .toLowerCase();
+
     const password = $('#loginPassword').value;
 
     try {
-        const res = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Login failed');
+
+        const res = await fetch(
+            `${API_URL}/api/auth/login`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            }
+        );
+
+        const text = await res.text();
+
+        let data;
+
+        try {
+
+            data = JSON.parse(text);
+
+        } catch {
+
+            throw new Error(
+                text || 'Invalid server response'
+            );
+        }
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message || 'Login failed'
+            );
+        }
 
         state.user = data.user;
-        localStorage.setItem('it_token', data.token);
-        localStorage.setItem('it_session', JSON.stringify(data.user));
+
+        localStorage.setItem(
+            'it_token',
+            data.token
+        );
+
+        localStorage.setItem(
+            'it_session',
+            JSON.stringify(data.user)
+        );
+
         enterApp();
+
     } catch (err) {
+
+        console.error(err);
+
         toast(err.message);
     }
 });
 
+// ===============================
+// Toggle Auth Forms
+// ===============================
 $('#showSignup').addEventListener('click', e => {
+
     e.preventDefault();
+
     hide($('#loginForm'));
+
     show($('#signupForm'));
 });
 
 $('#showLogin').addEventListener('click', e => {
+
     e.preventDefault();
+
     show($('#loginForm'));
+
     hide($('#signupForm'));
 });
 
+// ===============================
+// Logout
+// ===============================
 $('#logoutBtn').addEventListener('click', e => {
+
     e.preventDefault();
+
     state.user = null;
+
     localStorage.removeItem('it_session');
+
     localStorage.removeItem('it_token');
+
     hide($('#mainApp'));
+
     show($('#authPage'));
+
     hide($('#profileDropdown'));
+
     toast('Logged out successfully!');
 });
 
+// ===============================
+// Enter App
+// ===============================
 async function enterApp() {
+
     hide($('#authPage'));
+
     show($('#mainApp'));
-    $('#dashboardUserName').textContent = state.user.name.split(' ')[0];
-    $('#dropdownName').textContent = state.user.name;
-    $('#dropdownEmail').textContent = state.user.email;
-    $('#accName').value = state.user.name;
-    $('#accEmail').value = state.user.email;
+
+    $('#dashboardUserName').textContent =
+        state.user.name.split(' ')[0];
+
+    $('#dropdownName').textContent =
+        state.user.name;
+
+    $('#dropdownEmail').textContent =
+        state.user.email;
+
+    $('#accName').value =
+        state.user.name;
+
+    $('#accEmail').value =
+        state.user.email;
+
     switchPage('dashboard');
+
     loadHistory();
+
     loadChatHistory();
 }
 
-// Auto-login
+// ===============================
+// Auto Login / Session Check
+// ===============================
 (async function checkSession() {
-    const s = localStorage.getItem('it_session');
-    const token = localStorage.getItem('it_token');
+
+    const s =
+        localStorage.getItem('it_session');
+
+    const token =
+        localStorage.getItem('it_token');
+
     if (s && token) {
+
         state.user = JSON.parse(s);
-        // Verify token validity
+
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, {
-                headers: getHeaders()
-            });
-            if (res.ok) {
-                const verifiedUser = await res.json();
-                state.user = verifiedUser;
-                localStorage.setItem('it_session', JSON.stringify(verifiedUser));
-                enterApp();
-            } else {
-                localStorage.removeItem('it_session');
-                localStorage.removeItem('it_token');
+
+            const res = await fetch(
+                `${API_URL}/api/auth/me`,
+                {
+                    headers: getHeaders()
+                }
+            );
+
+            const text = await res.text();
+
+            let data;
+
+            try {
+
+                data = JSON.parse(text);
+
+            } catch {
+
+                throw new Error(text);
             }
+
+            if (res.ok) {
+
+                state.user = data;
+
+                localStorage.setItem(
+                    'it_session',
+                    JSON.stringify(data)
+                );
+
+                enterApp();
+
+            } else {
+
+                localStorage.removeItem(
+                    'it_session'
+                );
+
+                localStorage.removeItem(
+                    'it_token'
+                );
+            }
+
         } catch (err) {
-            console.error('Session verification failed, local fallback:', err);
-            enterApp();
+
+            console.error(
+                'Session verification failed:',
+                err
+            );
+
+            localStorage.removeItem(
+                'it_session'
+            );
+
+            localStorage.removeItem(
+                'it_token'
+            );
         }
     }
 })();
