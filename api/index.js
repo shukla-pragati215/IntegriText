@@ -11,6 +11,17 @@ const mammoth = require('mammoth');
 
 dotenv.config();
 
+let aiClient = null;
+if (process.env.GEMINI_API_KEY) {
+    try {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        aiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        console.log('✓ Gemini API Client Initialized');
+    } catch (err) {
+        console.error('Failed to initialize Gemini API Client:', err.message);
+    }
+}
+
 const app = express();
 
 // ============================
@@ -694,24 +705,274 @@ app.post('/api/chat', auth, async (req, res) => {
             return res.status(400).json({ message: 'Message is required' });
         }
 
+        // Save User Message to Database
         const userMsg = await ChatMessage.create({
             userId: req.user.id,
             message: message,
             sender: 'user'
         });
 
-        let responseText = "I'm here to help you refine your writing! Could you please tell me more or provide the text you'd like me to look at?";
-        const msgLower = message.toLowerCase();
-        if (msgLower.includes('hello') || msgLower.includes('hi')) {
-            responseText = "Hello! I'm your AI writing assistant. I can help you check for plagiarism, detect AI elements, improve grammar, or rewrite text. What would you like to do?";
-        } else if (msgLower.includes('plagiarism')) {
-            responseText = "To scan for plagiarism, head over to the Plagiarism tool in the sidebar, paste your content, and hit 'Check Plagiarism'. I can also explain plagiarism concepts if you like!";
-        } else if (msgLower.includes('grammar') || msgLower.includes('spell')) {
-            responseText = "I can definitely help you with grammar! Use the Grammar Checker tool in the sidebar for a full report, or paste your sentence here and I'll suggest corrections.";
-        } else if (msgLower.includes('humanize')) {
-            responseText = "Our AI Humanizer is specifically designed to adjust sentence structure, vocabulary variation, and tone to make text sound much more natural and human. Give it a try in the AI Humanizer section!";
-        } else if (msgLower.includes('help') || msgLower.includes('what can you do')) {
-            responseText = "I'm a complete writing suite assistant! I can guide you on: 1) Plagiarism metrics, 2) AI Content avoidance, 3) Grammar and style improvements, 4) Humanizing text, and 5) Multi-language translations.";
+        let responseText = '';
+
+        // ----------------------------------------------------
+        // ENGINE A: LIVE GEMINI LLM CLIENT (IF CONFIGURATION IS ACTIVE)
+        // ----------------------------------------------------
+        if (aiClient) {
+            try {
+                // Fetch last 15 messages for better dialogue context
+                const pastMessages = await ChatMessage.find({ userId: req.user.id })
+                    .sort({ createdAt: -1 })
+                    .limit(15);
+                pastMessages.reverse();
+
+                // ============ ENHANCED SYSTEM INSTRUCTION ============
+                const systemInstruction = `You are IntegriText's Advanced AI Writing Assistant - an expert in academic integrity, plagiarism detection, AI detection, grammar, and writing excellence.
+
+CORE PERSONALITY:
+- You are a knowledgeable, encouraging, and professional writing mentor
+- Provide actionable, specific feedback tailored to each user's question
+- Maintain a friendly but professional tone
+- Always stay focused on helping users improve their writing
+
+EXPERTISE AREAS:
+1. **Plagiarism & Academic Integrity**: Explain proper citation (MLA, APA, Chicago), paraphrasing techniques, and how to avoid plagiarism
+2. **AI Detection**: Educate users on perplexity, burstiness, and how detectors identify AI-written content
+3. **Grammar & Style**: Provide specific corrections with explanations of grammar rules
+4. **Writing Analytics**: Help with structure, tone, readability, and word complexity
+5. **Content Humanization**: Guide users on writing more naturally and less like an AI
+6. **Plagiarism Checker**: Explain how IntegriText's plagiarism scanner works and interpret results
+
+RESPONSE GUIDELINES:
+- Use Markdown formatting: **bold**, *italics*, bullet points, code blocks, numbered lists
+- Be specific and provide examples when relevant
+- Keep responses concise but comprehensive (aim for 150-300 words unless more detail is needed)
+- Ask clarifying questions if the user's question is vague
+- Always encourage ethical writing practices
+- Reference IntegriText tools when appropriate
+- Provide actionable steps the user can take immediately
+
+CONVERSATION CONTEXT:
+- Remember details from the current conversation
+- Tailor suggestions based on what the user has discussed
+- Build on previous messages to provide increasingly helpful feedback
+- Never repeat yourself unless asked`;
+
+                const contents = [];
+                // Add system instruction as first message
+                contents.push({ role: 'user', parts: [{ text: systemInstruction }] });
+                contents.push({ role: 'model', parts: [{ text: 'I understand. I am IntegriText\'s Advanced AI Writing Assistant. I\'m ready to help users with plagiarism detection, AI detection, grammar, writing analytics, and content quality. I will provide specific, actionable feedback in a professional yet encouraging tone.' }] });
+                
+                // Add relevant chat history (limit to prevent token overflow)
+                pastMessages.forEach(msg => {
+                    contents.push({
+                        role: msg.sender === 'user' ? 'user' : 'model',
+                        parts: [{ text: msg.message }]
+                    });
+                });
+                
+                // Add the current user message
+                contents.push({ role: 'user', parts: [{ text: message }] });
+
+                const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const response = await model.generateContent({ contents });
+                responseText = response.response.text();
+
+            } catch (geminiErr) {
+                console.error('Gemini Execution Error:', geminiErr);
+                // Fallback silently to Dynamic Local Engine if API call fails
+                responseText = '';
+            }
+        }
+
+        // ----------------------------------------------------
+        // ENGINE B: DYNAMIC LOCAL INTENT & ANALYTICS ENGINE (FALLBACK)
+        // ENHANCED WITH BETTER PATTERN MATCHING AND CONTEXT AWARENESS
+        // ----------------------------------------------------
+        if (!responseText) {
+            const msgTrim = message.trim();
+            const msgLower = msgTrim.toLowerCase();
+
+            // ===== SPECIAL COMMANDS =====
+            
+            // 1. COMMAND: Grammar Auditor
+            if (msgTrim.startsWith('/grammar ')) {
+                const textToCheck = msgTrim.slice(9).trim();
+                const commonCorrections = [
+                    { wrong: /\brecieve\b/gi, right: 'receive', rule: 'Spelling: "i before e except after c"' },
+                    { wrong: /\bseperate\b/gi, right: 'separate', rule: 'Spelling: "a" in the second syllable' },
+                    { wrong: /\bteh\b/gi, right: 'the', rule: 'Typo: common keystroke error' },
+                    { wrong: /\bdont\b/gi, right: "don't", rule: 'Punctuation: missing apostrophe in contractions' },
+                    { wrong: /\bcant\b/gi, right: "can't", rule: 'Punctuation: missing apostrophe in contractions' },
+                    { wrong: /\bwont\b/gi, right: "won't", rule: 'Punctuation: missing apostrophe in contractions' },
+                    { wrong: /\byour\b(?!\s+[a-z]*ing)/gi, right: "you're (if you meant 'you are')", rule: 'Common confusion: "your" vs "you\'re"' },
+                    { wrong: /\btheir\b(?=\s+[aeiou])/gi, right: "might need 'there' or 'they\'re'", rule: 'Common confusion: "their" vs "there"/"they\'re"' },
+                    { wrong: /\bitselfs\b/gi, right: 'itself', rule: 'Grammar: "itselfs" is incorrect' }
+                ];
+
+                let corrected = textToCheck;
+                let logs = [];
+                commonCorrections.forEach(c => {
+                    if (c.wrong.test(corrected)) {
+                        corrected = corrected.replace(c.wrong, `**${c.right}**`);
+                        logs.push(`• **${c.right}** — ${c.rule}`);
+                    }
+                });
+
+                if (logs.length > 0) {
+                    responseText = `### 📝 Grammar Audit Results\n\n**Your Text:** *"${textToCheck}"*\n\n**Audited Revision:** *"${corrected}"*\n\n**Corrections Found:**\n${logs.join('\n')}\n\n**Tip:** Copy the audited revision above to use the corrected version in your document!`;
+                } else {
+                    responseText = `### ✨ Grammar Check Complete\n\n**Your Text:** *"${textToCheck}"*\n\n**Verdict:** ✓ No common grammatical errors detected! Your writing is clean and well-structured. Excellent work!`;
+                }
+            }
+
+            // 2. COMMAND: Structural Outline Planner
+            else if (msgTrim.startsWith('/outline ')) {
+                const topic = msgTrim.slice(9).trim();
+                responseText = `### 🗺️ Writing Outline: **${topic}**\n\nHere's a comprehensive outline to guide your writing:\n\n` +
+                    `**I. INTRODUCTION**\n` +
+                    `• **Hook:** Start with a compelling statistic, quote, or question related to "${topic}"\n` +
+                    `• **Background:** Provide context so readers understand the subject\n` +
+                    `• **Thesis Statement:** One powerful sentence summarizing your main argument\n\n` +
+                    `**II. LITERATURE REVIEW & CONTEXT**\n` +
+                    `• **Key Theories:** Foundational research and established principles\n` +
+                    `• **Current Paradigms:** How experts currently view this topic\n` +
+                    `• **Gap Analysis:** What's missing from existing research\n\n` +
+                    `**III. MAIN ARGUMENTS & ANALYSIS**\n` +
+                    `• **Primary Argument:** Your strongest point with supporting evidence\n` +
+                    `• **Secondary Arguments:** Supporting points with examples and data\n` +
+                    `• **Counterarguments:** Address opposing viewpoints and rebut them\n\n` +
+                    `**IV. IMPLICATIONS & CONCLUSION**\n` +
+                    `• **Key Findings:** Summarize your main points in fresh language\n` +
+                    `• **Broader Impact:** How this matters to the field or society\n` +
+                    `• **Call to Action:** What should readers or researchers do next?`;
+            }
+
+            // 3. COMMAND: Advanced Analytics & Readability Scanner
+            else if (msgTrim.startsWith('/analyze ')) {
+                const textToAnalyze = msgTrim.slice(9).trim();
+                const wordArr = textToAnalyze.split(/\s+/).filter(Boolean);
+                const wCount = wordArr.length;
+                const charCount = textToAnalyze.length;
+                const sentenceCount = textToAnalyze.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
+                
+                const avgWordLen = wCount > 0 ? parseFloat((charCount / wCount).toFixed(2)) : 0;
+                const readTime = Math.max(1, Math.round(wCount / 200));
+                const avgSentenceLen = Math.round(wCount / sentenceCount);
+
+                // Tone Detection
+                let tone = 'Neutral & Balanced';
+                const formalWords = ['furthermore', 'moreover', 'subsequently', 'accordingly', 'hence', 'therefore', 'conclude', 'elucidate', 'substantiate'];
+                const casualWords = ['awesome', 'cool', 'stuff', 'hey', 'lol', 'basically', 'just', 'really', 'pretty'];
+                let formalScore = 0, casualScore = 0;
+                formalWords.forEach(w => { if (msgLower.includes(w)) formalScore++; });
+                casualWords.forEach(w => { if (msgLower.includes(w)) casualScore++; });
+                
+                if (formalScore > casualScore + 1) tone = 'Formal & Academic';
+                else if (casualScore > formalScore + 1) tone = 'Casual & Conversational';
+
+                // Word complexity assessment
+                let complexity = 'Moderate';
+                if (avgWordLen < 4.5) complexity = 'Simple & Direct';
+                else if (avgWordLen > 6.5) complexity = 'Complex & Dense';
+
+                const readabilityFeedback = wCount < 50 ? "**Too short** — expand your ideas with more supporting details." : 
+                                          wCount > 1000 ? "**Verbose** — consider condensing some sections for clarity." :
+                                          "**Well-sized** — good balance between detail and conciseness.";
+
+                responseText = `### 📊 Advanced Writing Analytics\n\n` +
+                    `**Content Metrics:**\n` +
+                    `• 📏 Word Count: **${wCount} words**\n` +
+                    `• 📝 Sentences: **${sentenceCount}** (Avg: ${avgSentenceLen} words/sentence)\n` +
+                    `• ⏱️ Reading Time: **~${readTime} minute(s)** (at 200 wpm)\n` +
+                    `• 🔤 Avg Word Length: **${avgWordLen} characters** (Ideal: 4.5–6)\n\n` +
+                    `**Writing Style:**\n` +
+                    `• 🎯 Tone: **${tone}**\n` +
+                    `• 🧬 Word Complexity: **${complexity}**\n` +
+                    `• 💬 Length Assessment: ${readabilityFeedback}`;
+            }
+
+            // 4. COMMAND: AI Humanizer Explainer
+            else if (msgTrim.startsWith('/humanize ')) {
+                const textToHumanize = msgTrim.slice(10).trim();
+                let revised = textToHumanize
+                    .replace(/\bdelve\b/gi, 'explore')
+                    .replace(/\btestament\b/gi, 'proof')
+                    .replace(/\bfurthermore\b/gi, 'also')
+                    .replace(/\bmoreover\b/gi, 'in addition')
+                    .replace(/\butilize\b/gi, 'use')
+                    .replace(/\bcandidate\b/gi, 'person')
+                    .replace(/\btapestry\b/gi, 'mix')
+                    .replace(/\bsubstantiate\b/gi, 'prove')
+                    .replace(/\belucidate\b/gi, 'explain');
+
+                responseText = `### 🧬 AI Humanizer Rewrite\n\n**How AI Detectors Work:**\nThey scan for predictable patterns, uniform sentence structure, and academic buzzwords that appear frequently in AI-generated text.\n\n**Original:** *"${textToHumanize}"*\n\n**Humanized Revision:** *"${revised}"*\n\n**Changes Applied:**\n• Replaced robotic/formal markers with active, natural verbs\n• Varied sentence structure and length for better flow\n• Used more conversational phrasing\n• Avoided over-use of academic jargon\n\n**Pro Tip:** Mix short punchy sentences with longer complex ones to increase variation and appear more human-like!`;
+            }
+
+            // ===== SMART INTENT MATCHING =====
+            
+            // 5. GREETING & WELCOME
+            else if (/^(hello|hi|hey|greetings|what'?s\s+up|hey there)/i.test(msgLower)) {
+                responseText = `### 👋 Welcome to IntegriText!\n\nHello! I'm your AI writing assistant, here to help you with:\n\n` +
+                    `**🛠️ Quick Commands:**\n` +
+                    `• \`/grammar [text]\` — Check for spelling and grammar errors\n` +
+                    `• \`/analyze [text]\` — Get readability, tone, and complexity analysis\n` +
+                    `• \`/outline [topic]\` — Generate a structured writing outline\n` +
+                    `• \`/humanize [text]\` — Make AI-sounding text more natural\n\n` +
+                    `**💬 Or ask me about:**\n` +
+                    `• Academic plagiarism and proper citations (MLA, APA, Chicago)\n` +
+                    `• How AI detectors identify generated content\n` +
+                    `• Writing tips and best practices\n` +
+                    `• Using IntegriText tools effectively\n\nWhat can I help you with today?`;
+            }
+
+            // 6. PLAGIARISM & CITATIONS
+            else if (msgLower.includes('plagiarism') || msgLower.includes('citation') || msgLower.includes('originality') || msgLower.includes('paraphras')) {
+                const isCitation = msgLower.includes('citation') || msgLower.includes('cite');
+                const isParaphrase = msgLower.includes('paraphras');
+                
+                if (isCitation) {
+                    responseText = `### 📚 Proper Citation Formats\n\n**Why Citations Matter:**\nCitations give credit to original authors and strengthen your credibility by showing you've researched.\n\n**MLA Format (Humanities):**\n\`(Author Page#)\` — e.g., (Smith 45)\n\n**APA Format (Sciences):**\n\`(Author, Year, p. XX)\` — e.g., (Smith, 2023, p. 45)\n\n**Chicago Style (History/Business):**\nFootnotes or endnotes with full publication details\n\n**Quick Rule:** If you're using someone else's words, ideas, or data — you MUST cite it. When in doubt, cite!`;
+                } else if (isParaphrase) {
+                    responseText = `### ✍️ The Art of Proper Paraphrasing\n\n**What is Paraphrasing?**\nRewriting someone's idea in your own words—**but you still must cite the source!**\n\n**Common Mistake:** Just swapping synonyms doesn't count as paraphrasing. Paraphrasing requires:\n• Changing sentence structure\n• Using your own voice and phrasing\n• Still crediting the original author\n\n**Example:**\n**Original:** "Climate change is causing sea levels to rise."\n**Poor paraphrase:** "Climate change is causing ocean levels to increase." ❌\n**Good paraphrase:** "Rising global temperatures are contributing to elevated oceanic water levels." + [cite source] ✓\n\n**Golden Rule:** Always cite paraphrased content!`;
+                } else {
+                    responseText = `### 🛡️ Understanding Academic Plagiarism\n\n**What is Plagiarism?**\nUsing someone else's work, ideas, words, or data without proper credit. This includes text, images, code, and data.\n\n**Types of Plagiarism:**\n1. **Direct Plagiarism** — Copying text word-for-word\n2. **Paraphrasing without citing** — Rewriting but not crediting\n3. **Self-plagiarism** — Reusing your own previous work without permission\n4. **Patchwriting** — Replacing a few words but keeping the structure\n\n**How to Stay Safe:**\n✓ Use our **Plagiarism Checker** before submitting\n✓ Always cite sources using MLA, APA, or Chicago style\n✓ Put quotes around direct excerpts\n✓ Paraphrase properly with citations\n✓ Keep track of your sources as you research`;
+                }
+            }
+
+            // 7. AI DETECTION HELP
+            else if (msgLower.includes('ai detect') || msgLower.includes('ai-detect') || msgLower.includes('flagged as ai') || msgLower.includes('ai-generated') || msgLower.includes('burstiness') || msgLower.includes('perplexity')) {
+                responseText = `### 🤖 Understanding AI Content Detection\n\n**How AI Detectors Work:**\nDetectors analyze two key factors:\n\n**1. Perplexity** 🧬\nHow "surprised" the model is by each word. AI tends to use predictable word sequences, resulting in LOW perplexity (easier to predict).\n\n**2. Burstiness** 📈\nVariation in sentence structure. Humans write with variety (short sentences, then long ones). AI is more uniform and repetitive.\n\n**Common AI Markers to Avoid:**\n❌ Robotic phrases: *delve, furthermore, tapestry, testament, candidate*\n❌ Over-formal tone throughout the entire piece\n❌ Every sentence is medium-length (no variety)\n❌ Passive voice overused\n❌ Repetitive paragraph structure\n\n**How to Lower AI Detection Scores:**\n✓ Use our **AI Humanizer** tool in IntegriText\n✓ Vary sentence lengths dramatically\n✓ Add personal anecdotes or examples\n✓ Use more active voice\n✓ Write naturally as you'd speak\n\n**Our IntegriText AI Detector** checks your work against these patterns!`;
+            }
+
+            // 8. GRAMMAR & STYLE HELP
+            else if (msgLower.includes('grammar') || msgLower.includes('spell') || msgLower.includes('punctuation') || msgLower.includes('typo')) {
+                responseText = `### ✏️ Grammar & Writing Style Guide\n\n**Common Grammar Mistakes:**\n\n1. **Subject-Verb Agreement** — "The team *is* ready" (not "are")\n2. **Comma Splices** — Use a semicolon or period instead of a comma between two independent clauses\n3. **Run-On Sentences** — Break long sentences into shorter, clearer ones\n4. **Misplaced Modifiers** — "While reading, the phone rang." (unclear who's reading)\n5. **Pronoun Reference** — Make sure pronouns clearly refer to a noun\n\n**Punctuation Tips:**\n• **Semicolon (;)** — Connects two related independent clauses\n• **Colon (:)** — Introduces a list or explanation\n• **Apostrophe** — Shows possession or contractions (can't, don't, it's)\n• **Oxford Comma** — The comma before "and" in a list (e.g., "red, white, and blue")\n\n**Quick Check:**\nUse our \`/grammar [your text]\` command to scan for common errors!`;
+            }
+
+            // 9. WRITING STRUCTURE & ORGANIZATION
+            else if (msgLower.includes('structure') || msgLower.includes('organize') || msgLower.includes('outline') || msgLower.includes('flow') || msgLower.includes('transition')) {
+                responseText = `### 📐 Writing Structure & Organization\n\n**Key Components of Well-Structured Writing:**\n\n**1. Introduction (5-10% of content)**\n• Hook the reader with an interesting fact or question\n• Provide background context\n• State your thesis clearly\n\n**2. Body Paragraphs (70-80% of content)**\n• One main idea per paragraph\n• Start with a topic sentence\n• Support with evidence, examples, or data\n• Explain how evidence supports your thesis\n\n**3. Transitions Between Paragraphs**\n• Use: "Additionally," "Furthermore," "In contrast," "For example,"\n• Creates flow and helps readers follow your logic\n\n**4. Conclusion (10-15% of content)**\n• Restate thesis in fresh language\n• Summarize main points\n• End with a strong takeaway or call to action\n\n**Pro Tip:** Use \`/outline [your topic]\` to generate a structured outline before writing!`;
+            }
+
+            // 10. HELP & COMMANDS
+            else if (msgLower.includes('help') || msgLower.includes('what can you do') || msgLower.includes('commands') || msgLower.includes('capabilities')) {
+                responseText = `### 🛠️ AI Assistant Command Dashboard\n\n**Available Commands & Features:**\n\n**📝 Quick Grammar Check**\n\`/grammar [your text]\` — Detects and fixes common spelling, grammar, and punctuation errors\n\n**📊 Writing Analytics**\n\`/analyze [your text]\` — Analyzes word count, sentence length, tone, readability, and complexity\n\n**🗺️ Outline Generator**\n\`/outline [topic]\` — Creates a structured outline to organize your thoughts\n\n**🧬 AI Humanizer**\n\`/humanize [your text]\` — Rewrites robotic-sounding text to sound more natural\n\n**💬 Open Questions**\nYou can ask me about:\n• Plagiarism detection and proper citations\n• AI detection and how to avoid flagging\n• Writing best practices and style\n• Using IntegriText tools\n• Academic integrity guidelines\n\nJust type your question naturally—I'll provide specific, helpful guidance!`;
+            }
+
+            // 11. TOOL & FEATURE USAGE
+            else if (msgLower.includes('how to use') || msgLower.includes('how do i') || msgLower.includes('using integrtext') || msgLower.includes('scanner') || msgLower.includes('checker')) {
+                responseText = `### 🚀 How to Use IntegriText\n\n**Plagiarism Checker:**\n1. Paste or upload your document\n2. Click "Scan for Plagiarism"\n3. Review the plagiarism score (%)originality\n4. Check matched sources and segments\n5. Download detailed PDF report\n\n**AI Detector:**\n1. Paste your text\n2. Click "Check for AI Content"\n3. Get human vs. AI score\n4. Review perplexity and burstiness metrics\n5. Use our AI Humanizer if needed\n\n**AI Humanizer:**\n1. Paste AI-generated or robotic text\n2. Click "Humanize"\n3. Get a naturally-rewritten version\n4. Copy and paste the improved version\n\n**AI Chat Assistant (that's me!):**\n• Use \`/grammar\`, \`/analyze\`, \`/outline\`, \`/humanize\` commands\n• Ask questions about writing, plagiarism, AI detection\n• Get personalized feedback and guidance\n\n**Any specific tool you'd like help with?**`;
+            }
+
+            // 12. GENERAL ACADEMIC HELP
+            else if (msgLower.includes('essay') || msgLower.includes('paper') || msgLower.includes('assignment') || msgLower.includes('academic') || msgLower.includes('research')) {
+                responseText = `### 📖 Academic Writing Guidance\n\n**Tips for Writing Strong Papers:**\n\n**Before You Start:**\n✓ Read the assignment rubric carefully\n✓ Research your topic thoroughly\n✓ Create an outline (use \`/outline [topic]\`)\n✓ Gather your sources and take notes\n\n**While Writing:**\n✓ Write a compelling introduction with a clear thesis\n✓ Use topic sentences to guide each paragraph\n✓ Support claims with evidence and examples\n✓ Cite all sources properly (MLA, APA, Chicago)\n✓ Vary your sentence structure for readability\n✓ Use transitions between paragraphs\n\n**Before Submitting:**\n✓ Check for plagiarism with our **Plagiarism Checker**\n✓ Scan for grammar with \`/grammar\` command\n✓ Analyze readability with \`/analyze\` command\n✓ Check AI detection score if concerned\n✓ Proofread carefully (multiple times!)\n\n**What aspect of your paper would you like help with?**`;
+            }
+
+            // 13. GENERAL FALLBACK: Encouragement & Guidance
+            else {
+                responseText = `### 💡 Writing Assistant Response\n\nThanks for your question! To give you the best help, here are some options:\n\n**If you want quick feedback:**\n• \`/grammar [paste your text]\` — Fix errors\n• \`/analyze [paste your text]\` — Check readability\n• \`/humanize [paste your text]\` — Make it sound natural\n• \`/outline [topic]\` — Get a writing structure\n\n**If you have a question about:**\n• **Plagiarism:** Ask about citations, paraphrasing, or academic integrity\n• **AI Detection:** Ask how detectors work or how to improve your score\n• **Grammar:** Ask about specific grammar rules or writing style\n• **Writing:** Ask for tips on structure, tone, or organization\n\n**Example Questions I Can Answer:**\n• "How do I properly cite a source?"\n• "What makes writing sound like an AI?"\n• "How can I improve my essay flow?"\n• "What's the difference between MLA and APA?"\n\n**Try rephrasing your question or using one of the commands above!**`;
+            }
         }
 
         const botMsg = await ChatMessage.create({
@@ -722,8 +983,22 @@ app.post('/api/chat', auth, async (req, res) => {
 
         res.json({ botMsg });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Chat Error:', error);
+        
+        // Save error message for user context
+        const fallbackMsg = `I encountered an issue processing your request: ${error.message || 'Unknown error'}. Please try again or use one of my commands: \`/grammar\`, \`/analyze\`, \`/outline\`, or \`/humanize\`.`;
+        
+        try {
+            await ChatMessage.create({
+                userId: req.user.id,
+                message: fallbackMsg,
+                sender: 'bot'
+            });
+        } catch (dbErr) {
+            console.error('Failed to save error message:', dbErr);
+        }
+        
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
